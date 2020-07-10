@@ -2,13 +2,12 @@
 
 import Foundation
 
-enum Op {
+enum Op: CaseIterable {
 	case add
 	case subtract
 	case multiply
 	case divide
 	case exponentiation
-	case nop
 
 	static var all: [Op] = [.add, .subtract, .multiply, .divide, .exponentiation]
 
@@ -24,8 +23,6 @@ enum Op {
 			return a / b
 		case .exponentiation:
 			return pow(a, b)
-		case .nop:
-			fatalError()
 		}
 	}
 
@@ -41,89 +38,79 @@ enum Op {
 			return "/"
 		case .exponentiation:
 			return "^"
-		case .nop:
-			fatalError()
 		}
 	}
 }
 
-indirect
-enum Calc {
-	case op(Calc, Op, Calc)
-	case x(Double)
+enum RPN {
+	case op(Op)
+	case value(Double)
 
-	var value: Double {
-		switch self {
-		case let .op(a, op, b):
-			return op.perform(a.value, b.value)
-		case let .x(x):
-			return x
+	static func rpn(_ rpn: [Any]) -> [RPN] {
+		rpn.compactMap { value in
+			if let op = value as? Op {
+				return .op(op)
+			} else if let value = value as? Double {
+				return .value(value)
+			} else {
+				return nil
+			}
 		}
+	}
+
+	static func calculate(_ rpn: [RPN]) -> Double {
+		var stack = [Double]()
+		rpn.forEach { item in
+			switch item {
+			case let .op(op):
+				let a = stack.removeLast()
+				let b = stack.removeLast()
+				stack.append(op.perform(a, b))
+			case let .value(value):
+				stack.append(value)
+			}
+		}
+		return stack[0]
+	}
+
+	static func description(_ rpn: [RPN]) -> String {
+		rpn.map { op in
+			op.description
+		}.joined(separator: " ")
 	}
 
 	var description: String {
 		switch self {
-		case let .op(a, op, b):
-			return "(\(a.description) \(op.description) \(b.description))"
-		case let .x(x):
-			return "\(x)"
-		}
-	}
-
-	func output() {
-		print("\(description) = \(value)")
-	}
-
-	static func calculation(from ops: [(Double, Op)]) -> Calc {
-		if ops.count == 1 {
-			return .x(ops[0].0)
-		} else {
-			let value = ops[0].0
-			let op = ops[0].1
-			return .op(.x(value), op, calculation(from: Array(ops.dropFirst())))
+		case let .op(op):
+			return op.description
+		case let .value(value):
+			return String(value)
 		}
 	}
 }
 
 
-func find_matches(equal: Double, valueOps: [(Double, Op)] = [], with values: [Double], using ops: [Op], maxDepth: Int) {
-	if valueOps.count == maxDepth {
-		values.forEach { value in
-			let calc = Calc.calculation(from: valueOps + [(value, .nop)])
-			if calc.value == equal {
-				calc.output()
-			}
-		}
-	} else {
-		for(i, value) in values.enumerated() {
-			var array = values
-			array.remove(at: i)
-			ops.forEach { op in
-				find_matches(equal: equal, valueOps: valueOps + [(value, op)], with: array, using: ops, maxDepth: maxDepth)
-			}
-		}
-	}
-}
-
-// I couldn't think of a general algorithm to handle this case offhand (a op b) op (b op c) and can't spend any more time on this so I just special case it with this sloppy inelegant code
-func find_grouped_matches(equal: Double, with values: [Double], using ops: [Op]) {
+func find_matches(equal: Double, valueOps: [(Double, Op)] = [], with values: [Double], using ops: [Op]) {
 	for (ai, a) in values.enumerated() {
-		for (bi, b) in values.enumerated() {
-			if ai == bi { continue }
+		for (bi, b) in values.enumerated() where bi != ai {
 			ops.forEach { abOp in
-				ops.forEach { abcdOp in
-					for (ci, c) in values.enumerated() {
-						if ci == ai || ci == bi { continue }
-						for (di, d) in values.enumerated() {
-							if di == ai || di == bi || di == ci { continue }
-							ops.forEach { cdOp in
-								let calc: Calc = .op(
-									.op(.x(a), abOp, .x(b)),
-									abcdOp,
-									.op(.x(c), cdOp, .x(d))
-								)
-								if calc.value == equal {
-									calc.output()
+				for (ci, c) in values.enumerated() where ci != bi && ci != ai {
+					for (di, d) in values.enumerated() where di != ci && di != bi && di != ai {
+						ops.forEach { cdOp in
+							ops.forEach { abcdOp in
+								let rpn = RPN.rpn([a, b, abOp, c, d, cdOp, abcdOp])
+								if RPN.calculate(rpn) == equal {
+									print(RPN.description(rpn))
+								}
+							}
+						}
+					}
+					ops.forEach { abcOp in
+						for (di, d) in values.enumerated() where di != ci && di != bi && di != ai {
+							ops.forEach { abcdOp in
+								let rpn = RPN.rpn([a, b, abOp, c, abcOp, d, abcdOp])
+								if RPN.calculate(rpn) == equal {
+									print(RPN.description(rpn))
 								}
 							}
 						}
@@ -134,12 +121,10 @@ func find_grouped_matches(equal: Double, with values: [Double], using ops: [Op])
 	}
 }
 
-
 let values = [2.0, 3.0, 3.0, 4.0]
-let value = 24.0
+let answer = 24.0
 
-find_matches(equal: 24, with: values, using: Op.all, maxDepth: 3)
-find_grouped_matches(equal: 24, with: values, using: Op.all)
+find_matches(equal: answer, with: values, using: Op.allCases)
 
 
 
