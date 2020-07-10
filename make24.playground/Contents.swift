@@ -58,11 +58,14 @@ enum RPN {
 		}
 	}
 
-	static func calculate(_ rpn: [RPN]) -> Double {
+	static func calculate(_ rpn: [RPN]) throws -> Double {
 		var stack = [Double]()
-		rpn.forEach { item in
+		try rpn.forEach { item in
 			switch item {
 			case let .op(op):
+				if stack.count < 2 {
+					throw RPNError.error
+				}
 				let a = stack.removeLast()
 				let b = stack.removeLast()
 				stack.append(op.perform(a, b))
@@ -89,28 +92,27 @@ enum RPN {
 	}
 }
 
+enum RPNError: Error {
+	case error
+}
 
 func find_matches(equal: Double, valueOps: [(Double, Op)] = [], with values: [Double], using ops: [Op]) {
 	for (ai, a) in values.enumerated() {
 		for (bi, b) in values.enumerated() where bi != ai {
-			ops.forEach { abOp in
+			ops.forEach { Z in
 				for (ci, c) in values.enumerated() where ci != bi && ci != ai {
 					for (di, d) in values.enumerated() where di != ci && di != bi && di != ai {
-						ops.forEach { cdOp in
-							ops.forEach { abcdOp in
-								let rpn = RPN.rpn([a, b, abOp, c, d, cdOp, abcdOp])
-								if RPN.calculate(rpn) == equal {
-									print(RPN.description(rpn))
-								}
-							}
-						}
-					}
-					ops.forEach { abcOp in
-						for (di, d) in values.enumerated() where di != ci && di != bi && di != ai {
-							ops.forEach { abcdOp in
-								let rpn = RPN.rpn([a, b, abOp, c, abcOp, d, abcdOp])
-								if RPN.calculate(rpn) == equal {
-									print(RPN.description(rpn))
+						ops.forEach { X in
+							ops.forEach { Y in
+								let head = [a, b]
+								let tail = [Z]
+								permutations([c, d, X, Y]).forEach { ops in
+									let rpn = RPN.rpn(head + ops + tail)
+									do {
+										if try RPN.calculate(rpn) == equal {
+											print(RPN.description(rpn))
+										}
+									} catch { }
 								}
 							}
 						}
@@ -121,10 +123,24 @@ func find_matches(equal: Double, valueOps: [(Double, Op)] = [], with values: [Do
 	}
 }
 
+extension Array {
+    func decompose() -> (Iterator.Element, [Iterator.Element])? {
+        guard let x = first else { return nil }
+        return (x, Array(self[1..<count]))
+    }
+}
+
+func between<T>(x: T, _ ys: [T]) -> [[T]] {
+    guard let (head, tail) = ys.decompose() else { return [[x]] }
+    return [[x] + ys] + between(x: x, tail).map { [head] + $0 }
+}
+
+func permutations<T>(_ xs: [T]) -> [[T]] {
+    guard let (head, tail) = xs.decompose() else { return [[]] }
+    return permutations(tail).flatMap { between(x: head, $0) }
+}
+
 let values = [2.0, 3.0, 3.0, 4.0]
 let answer = 24.0
 
 find_matches(equal: answer, with: values, using: Op.allCases)
-
-
-
