@@ -42,7 +42,7 @@ enum Op: CaseIterable {
 	}
 }
 
-enum RPN {
+enum RPN: Hashable {
 	case op(Op)
 	case value(Double)
 
@@ -76,6 +76,22 @@ enum RPN {
 		return stack[0]
 	}
 
+	static func infixDescription(_ rpn: [RPN]) -> String {
+		var stack = [String]()
+		try rpn.forEach { item in
+			switch item {
+			case let .op(op):
+				let a = stack.removeLast()
+				let b = stack.removeLast()
+				stack.append("(\(a) \(op.description) \(b))")
+			case let .value(value):
+				stack.append(String(value))
+			}
+		}
+		return stack[0]
+
+	}
+
 	static func description(_ rpn: [RPN]) -> String {
 		rpn.map { op in
 			op.description
@@ -96,7 +112,8 @@ enum RPNError: Error {
 	case error
 }
 
-func find_matches(equal: Double, valueOps: [(Double, Op)] = [], with values: [Double], using ops: [Op]) {
+func find_matches(equal: Double, valueOps: [(Double, Op)] = [], with values: [Double], using ops: [Op]) -> Set<[RPN]> {
+	var answers = Set<[RPN]>()
 	for (ai, a) in values.enumerated() {
 		for (bi, b) in values.enumerated() where bi != ai {
 			ops.forEach { Z in
@@ -110,7 +127,7 @@ func find_matches(equal: Double, valueOps: [(Double, Op)] = [], with values: [Do
 									let rpn = RPN.rpn(head + ops + tail)
 									do {
 										if try RPN.calculate(rpn) == equal {
-											print(RPN.description(rpn))
+											answers.insert(rpn)
 										}
 									} catch { }
 								}
@@ -121,6 +138,7 @@ func find_matches(equal: Double, valueOps: [(Double, Op)] = [], with values: [Do
 			}
 		}
 	}
+	return answers
 }
 
 extension Array {
@@ -143,4 +161,6 @@ func permutations<T>(_ xs: [T]) -> [[T]] {
 let values = [2.0, 3.0, 3.0, 4.0]
 let answer = 24.0
 
-find_matches(equal: answer, with: values, using: Op.allCases)
+find_matches(equal: answer, with: values, using: Op.allCases).forEach { rpn in
+	print(RPN.infixDescription(rpn))
+}
