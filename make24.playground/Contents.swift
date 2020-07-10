@@ -86,30 +86,28 @@ enum Calc {
 }
 
 
-func find_matches(equal: Double, valueOps: [(Double, Op)] = [], with values: [Double], using ops: [Op], maxDepth: Int) -> [Calc] {
-	var matches = [Calc]()
+func find_matches(equal: Double, valueOps: [(Double, Op)] = [], with values: [Double], using ops: [Op], maxDepth: Int) {
 	if valueOps.count == maxDepth {
 		values.forEach { value in
 			let calc = Calc.calculation(from: valueOps + [(value, .nop)])
-			//if calc.value == equal {
-				matches.append(calc)
-//			}
+//			if calc.value == equal {
+				calc.output()
+	//		}
 		}
 	} else {
-		values.forEach { value in
+		for(i, value) in values.enumerated() {
+			var array = values
+			array.remove(at: i)
 			ops.forEach { op in
-				matches += find_matches(equal: equal, valueOps: valueOps + [(value, op)], with: values, using: ops, maxDepth: maxDepth)
+				find_matches(equal: equal, valueOps: valueOps + [(value, op)], with: array, using: ops, maxDepth: maxDepth)
 			}
 		}
 	}
-	return matches
 }
 
 let values = [2.0, 3.0, 3.0, 4.0]
 let value = 24.0
 
-find_matches(equal: 24, with: values, using: Op.all, maxDepth: 1).forEach {
-	$0.output()
-}
+find_matches(equal: 24, with: values, using: Op.all, maxDepth: 3)
 
 
