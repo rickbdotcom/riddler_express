@@ -106,7 +106,7 @@ func find_matches(equal: Double, valueOps: [(Double, Op)] = [], with values: [Do
 }
 
 // I couldn't think of a general algorithm to handle this case offhand (a op b) op (b op c) and can't spend any more time on this so I just special case it with this sloppy inelegant code
-func find_grouped_matches(equal: Double, with values: [Double], using ops: [Op], maxDepth: Int) {
+func find_grouped_matches(equal: Double, with values: [Double], using ops: [Op]) {
 	for (ai, a) in values.enumerated() {
 		for (bi, b) in values.enumerated() {
 			if ai == bi { continue }
@@ -139,7 +139,7 @@ let values = [2.0, 3.0, 3.0, 4.0]
 let value = 24.0
 
 find_matches(equal: 24, with: values, using: Op.all, maxDepth: 3)
-find_grouped_matches(equal: 24, with: values, using: Op.all, maxDepth: 3)
+find_grouped_matches(equal: 24, with: values, using: Op.all)
 
 
 
