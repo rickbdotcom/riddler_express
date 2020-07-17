@@ -110,7 +110,7 @@ enum RPNError: Error {
 	case error
 }
 
-func find_matches(equal: Double, valueOps: [(Double, Op)] = [], with values: [Double], using ops: [Op]) -> Set<[RPN]> {
+func find_matches(equal: Double, with values: [Double], using ops: [Op]) -> Set<[RPN]> {
 	var answers = Set<[RPN]>()
 	for (ai, a) in values.enumerated() {
 		for (bi, b) in values.enumerated() where bi != ai {
