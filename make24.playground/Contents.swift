@@ -9,8 +9,6 @@ enum Op: CaseIterable {
 	case divide
 	case exponentiation
 
-	static var all: [Op] = [.add, .subtract, .multiply, .divide, .exponentiation]
-
 	func perform(_ a: Double, _ b: Double) -> Double {
 		switch self {
 		case .add:
